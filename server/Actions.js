@@ -1,4 +1,4 @@
-// All the events
+// All the events that performe during .....
 
 const ACTIONS = {
   JOIN: "join",
