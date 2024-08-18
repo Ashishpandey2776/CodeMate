@@ -58,6 +58,12 @@ io.on("connection", (socket) => {
     socket.in(roomId).emit(ACTIONS.CODE_CHANGE, { code });
   });
 
+  socket.on(ACTIONS.CHAT_MESSAGE, ({ roomId, message }) => {
+    socket.to(roomId).emit(ACTIONS.CHAT_MESSAGE, { username: "You", message });
+    socket.to(roomId).emit(ACTIONS.NEW_MESSAGE_NOTIFICATION, { roomId }); // Emit notification
+  });
+
+
   socket.on(ACTIONS.SYNC_CODE, ({ socketId, code }) => {
     io.to(socketId).emit(ACTIONS.CODE_CHANGE, { code });
   });

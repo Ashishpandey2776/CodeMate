@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import Client from "./Client";
 import Editor from "./Editor";
+import Chat from "./Chat";
 import { initSocket } from "../Socket";
 import { ACTIONS } from "../Actions";
 import {
@@ -157,6 +158,7 @@ function EditorPage() {
               codeRef.current = code;
             }}
           />
+           <Chat socketRef={socketRef} roomId={roomId} />
         </div>
 
         {/* Output panel */}
