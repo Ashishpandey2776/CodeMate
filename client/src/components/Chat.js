@@ -4,7 +4,7 @@ import { toast } from "react-hot-toast";
 import { FaComments, FaChevronDown, FaChevronUp, FaBell } from "react-icons/fa";
 import "bootstrap/dist/css/bootstrap.min.css"; // Import Bootstrap
 
-function Chat({ socketRef, roomId }) {
+function Chat({ socketRef, roomId, username }) {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [isChatVisible, setIsChatVisible] = useState(false);
@@ -18,11 +18,11 @@ function Chat({ socketRef, roomId }) {
     setMessages(storedMessages);
 
     if (socketRef.current) {
-      socketRef.current.on(ACTIONS.CHAT_MESSAGE, ({ username, message }) => {
-        const newMessages = [...messages, { username, message }];
+      socketRef.current.on(ACTIONS.CHAT_MESSAGE, ({ username: sender, message }) => {
+        const newMessages = [...messages, { username: sender, message }];
         setMessages(newMessages);
         localStorage.setItem(`chatMessages_${roomId}`, JSON.stringify(newMessages));
-        if (username !== "You") {
+        if (sender !== username) {
           setHasNewMessage(true); // Indicate new message
         }
       });
@@ -38,7 +38,7 @@ function Chat({ socketRef, roomId }) {
       socketRef.current.off(ACTIONS.CHAT_MESSAGE);
       socketRef.current.off(ACTIONS.NEW_MESSAGE_NOTIFICATION);
     };
-  }, [socketRef.current, isChatVisible, messages, roomId]);
+  }, [socketRef.current, isChatVisible, messages, roomId, username]);
 
   const sendMessage = () => {
     if (message.trim()) {
@@ -112,13 +112,18 @@ function Chat({ socketRef, roomId }) {
           </div>
           {!isChatMinimized && (
             <>
-              <div className="card-body overflow-auto" style={{ maxHeight: "300px" }}>
+              <div className="card-body overflow-auto d-flex flex-column-reverse" style={{ maxHeight: "300px" }}>
                 {messages.map((msg, index) => (
                   <div
                     key={index}
-                    className={`alert ${msg.username === "You" ? "alert-info text-end" : "alert-secondary"}`}
+                    className={`d-flex ${msg.username === username ? "justify-content-end" : "justify-content-start"} mb-2`}
                   >
-                    <strong>{msg.username}: </strong>{msg.message}
+                    <div
+                      className={`p-2 rounded ${msg.username === username ? "bg-info text-white" : "bg-secondary text-light"}`}
+                      style={{ maxWidth: "70%" }}
+                    >
+                      <strong>{msg.username}: </strong>{msg.message}
+                    </div>
                   </div>
                 ))}
                 <div ref={messagesEndRef} />

@@ -10,6 +10,8 @@ const ACTIONS = {
   RUN_CODE:"run",
   CHAT_MESSAGE: "chat_message",
   NEW_MESSAGE_NOTIFICATION: "new_message_notification",
+  SENDING_SIGNAL: "sending-signal",
+  RECEIVING_RETURNED_SIGNAL: "receiving-returned-signal",
 };
 
 module.exports = ACTIONS;
