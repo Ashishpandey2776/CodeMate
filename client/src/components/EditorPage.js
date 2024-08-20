@@ -1,22 +1,19 @@
 import React, { useEffect, useRef, useState } from "react";
 import Client from "./Client";
 import Editor from "./Editor";
+import Chat from "./Chat";
 import { initSocket } from "../Socket";
 import { ACTIONS } from "../Actions";
-import {
-  useNavigate,
-  useLocation,
-  Navigate,
-  useParams,
-} from "react-router-dom";
+import { useNavigate, useLocation, Navigate, useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
 
 function EditorPage() {
   const [clients, setClients] = useState([]);
-  const [ResOutput, setResOutput] = useState(''); // State for the output
+  const [resOutput, setResOutput] = useState('');
+  const [language, setLanguage] = useState('javascript'); // Default language
 
   const codeRef = useRef(null);
-  const Location = useLocation();
+  const location = useLocation();
   const navigate = useNavigate();
   const { roomId } = useParams();
 
@@ -36,35 +33,25 @@ function EditorPage() {
 
       socketRef.current.emit(ACTIONS.JOIN, {
         roomId,
-        username: Location.state?.username,
+        username: location.state?.username,
       });
 
-      // Listen for new clients joining the chatroom
-      socketRef.current.on(
-        ACTIONS.JOINED,
-        ({ clients, username, socketId }) => {
-          // This ensures that the new user connected message does not display to that user itself
-          if (username !== Location.state?.username) {
-            toast.success(`${username} joined the room.`);
-          }
-          setClients(clients);
-          // Also send the code to sync
-          socketRef.current.emit(ACTIONS.SYNC_CODE, {
-            code: codeRef.current,
-            socketId,
-          });
+      socketRef.current.on(ACTIONS.JOINED, ({ clients, username, socketId }) => {
+        if (username !== location.state?.username) {
+          toast.success(`${username} joined the room.`);
         }
-      );
-
-      // Listen for disconnections
-      socketRef.current.on(ACTIONS.DISCONNECTED, ({ socketId, username }) => {
-        toast.success(`${username} left the room`);
-        setClients((prev) => {
-          return prev.filter((client) => client.socketId !== socketId);
+        setClients(clients);
+        socketRef.current.emit(ACTIONS.SYNC_CODE, {
+          code: codeRef.current,
+          socketId,
         });
       });
 
-      // Listen for code output
+      socketRef.current.on(ACTIONS.DISCONNECTED, ({ socketId, username }) => {
+        toast.success(`${username} left the room`);
+        setClients((prev) => prev.filter((client) => client.socketId !== socketId));
+      });
+
       socketRef.current.on("codeOutput", (data) => {
         console.log("Received code output:", data);
         setResOutput(data.output || data.error);
@@ -72,7 +59,6 @@ function EditorPage() {
     };
     init();
 
-    // Cleanup
     return () => {
       socketRef.current && socketRef.current.disconnect();
       socketRef.current.off(ACTIONS.JOINED);
@@ -81,7 +67,7 @@ function EditorPage() {
     };
   }, []);
 
-  if (!Location.state) {
+  if (!location.state) {
     return <Navigate to="/" />;
   }
 
@@ -102,8 +88,7 @@ function EditorPage() {
   const runCode = async () => {
     try {
       const code = codeRef.current;
-      console.log("Running code:", code);
-      socketRef.current.emit('runCode', { code,roomId });
+      socketRef.current.emit('runCode', { code, roomId, language });
     } catch (error) {
       console.error('Error running code:', error);
     }
@@ -113,10 +98,7 @@ function EditorPage() {
     <div className="container-fluid vh-100">
       <div className="row h-100">
         {/* Client panel */}
-        <div
-          className="col-md-2 bg-dark text-light d-flex flex-column h-100"
-          style={{ boxShadow: "2px 0px 4px rgba(0, 0, 0, 0.1)" }}
-        >
+        <div className="col-md-2 bg-dark text-light d-flex flex-column h-100" style={{ boxShadow: "2px 0px 4px rgba(0, 0, 0, 0.1)" }}>
           <img
             src="/images/codemate.png"
             alt="Logo"
@@ -125,7 +107,6 @@ function EditorPage() {
           />
           <hr style={{ marginTop: "-3rem" }} />
 
-          {/* Client list container */}
           <div className="d-flex flex-column flex-grow-1 overflow-auto">
             <span className="mb-2">Members</span>
             {clients.map((client) => (
@@ -134,17 +115,9 @@ function EditorPage() {
           </div>
 
           <hr />
-          {/* Buttons */}
           <div className="mt-auto">
-            <button className="btn btn-success" onClick={copyRoomId}>
-              Copy Room ID
-            </button>
-            <button
-              className="btn btn-danger mt-2 mb-2 px-3 btn-block"
-              onClick={leaveRoom}
-            >
-              Leave Room
-            </button>
+            <button className="btn btn-success" onClick={copyRoomId}>Copy Room ID</button>
+            <button className="btn btn-danger mt-2 mb-2 px-3 btn-block" onClick={leaveRoom}>Leave Room</button>
           </div>
         </div>
 
@@ -157,22 +130,30 @@ function EditorPage() {
               codeRef.current = code;
             }}
           />
+          <Chat socketRef={socketRef} roomId={roomId} />
         </div>
 
         {/* Output panel */}
-        <div
-          className="col-md-2 bg-dark text-light d-flex flex-column h-100 overflow-auto"
-          style={{ boxShadow: "2px 0px 4px rgba(0, 0, 0, 0.1)" }}
-        >
+        <div className="col-md-2 bg-dark text-light d-flex flex-column h-100 overflow-auto" style={{ boxShadow: "2px 0px 4px rgba(0, 0, 0, 0.1)" }}>
           <div className="md-auto" style={{ marginLeft: "20px", marginTop: "15px" }}>
-            <button className="btn btn-success" onClick={runCode}>
-              Run Code
-            </button>
+            <div className="mb-2">
+              <select
+                className="form-select"
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+              >
+                <option value="javascript">JavaScript</option>
+                <option value="python">Python</option>
+                <option value="c++">C++</option>
+                <option value="c">C</option>
+              </select>
+            </div>
+            <button className="btn btn-success" onClick={runCode}>Run Code</button>
             <hr />
           </div>
           <div className="d-flex flex-column flex-grow-1 overflow-auto">
             <span className="mb-2">Output:</span>
-            <pre>{ResOutput}</pre>
+            <pre>{resOutput}</pre>
           </div>
         </div>
       </div>

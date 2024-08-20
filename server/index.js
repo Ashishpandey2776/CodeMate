@@ -39,12 +39,35 @@ io.on("connection", (socket) => {
     });
   });
 
-  socket.on('runCode', async ({ code,roomId }) => {
+  socket.on('runCode', async ({ code, roomId, language }) => {
+    let versionIndex;
+    switch (language) {
+        case 'javascript':
+            language = 'nodejs';
+            versionIndex = '3';
+            break;
+        case 'python':
+            language = 'python3';
+            versionIndex = '3';
+            break;
+        case 'c++':
+            language = 'cpp17'; // Correct identifier for C++
+            versionIndex = '1';
+            break;
+        case 'c':
+            language = 'c';
+            versionIndex = '5';
+            break;
+        default:
+            language = 'nodejs';
+            versionIndex = '3';
+    }
+
     try {
       const response = await axios.post('https://api.jdoodle.com/v1/execute', {
         script: code,
-        language: "nodejs",
-        versionIndex: "3",
+        language: language,
+        versionIndex: versionIndex,
         clientId: process.env.CLIENTID,
         clientSecret: process.env.CLIENTSECRET
       });
@@ -58,6 +81,13 @@ io.on("connection", (socket) => {
     socket.in(roomId).emit(ACTIONS.CODE_CHANGE, { code });
   });
 
+  socket.on(ACTIONS.CHAT_MESSAGE, ({ roomId, message }) => {
+    const username = userSocketMap[socket.id];
+    socket.to(roomId).emit(ACTIONS.CHAT_MESSAGE, { username, message });
+    socket.to(roomId).emit(ACTIONS.NEW_MESSAGE_NOTIFICATION, { roomId }); // Emit notification
+  });
+
+
   socket.on(ACTIONS.SYNC_CODE, ({ socketId, code }) => {
     io.to(socketId).emit(ACTIONS.CODE_CHANGE, { code });
   });
@@ -70,11 +100,13 @@ io.on("connection", (socket) => {
         username: userSocketMap[socket.id],
       });
     });
-
     delete userSocketMap[socket.id];
     socket.leave();
   });
 });
 
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
+
+server.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
