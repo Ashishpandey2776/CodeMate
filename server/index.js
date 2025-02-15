@@ -4,7 +4,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const axios = require('axios');
 const cors = require('cors');
-const ACTIONS = require("./Actions")
+const ACTIONS = require("./Actions");
 require('dotenv').config()
 
 const server = http.createServer(app);
